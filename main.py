@@ -42,16 +42,15 @@ async def make_notif(session, post_json):
 
 
 async def refresh(session):
-    counter = 1
     while True:
         cache = get_cache()
         response = await fetch_sub_json(session)
         posts = response['data']['children']
+        posts.reverse()
         for post in posts:
             if post['data']['id'] not in cache:
                 await make_notif(session, post)
         save_cache(posts)
-        counter += 1
         await asyncio.sleep(frequency)
 
 
