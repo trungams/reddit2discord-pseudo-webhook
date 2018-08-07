@@ -26,13 +26,14 @@ async def fetch_sub_json(session):
 def save_cache(posts):
     with open(cache_file, 'w') as f:
         for post in posts:
-            f.write(post['data']['id'] + ' ')
+            f.write(post + ' ')
 
 
 def get_cache():
     with open(cache_file, 'r') as f:
-        post_ids = f.read().split()
-        return post_ids
+        post_ids_list = f.read().split()
+        post_ids_set = set(post_ids_list)
+        return post_ids_set
 
 
 async def make_notif(session, post_json):
@@ -50,7 +51,8 @@ async def refresh(session):
         for post in posts:
             if post['data']['id'] not in cache:
                 await make_notif(session, post)
-        save_cache(posts)
+                cache.add(post['data']['id'])
+        save_cache(cache)
         await asyncio.sleep(frequency)
 
 
