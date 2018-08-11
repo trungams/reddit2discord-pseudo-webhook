@@ -3,6 +3,7 @@
 import asyncio
 import aiohttp
 import configparser
+from datetime import datetime
 
 base_url = subreddit = subreddit_url = destination_url = cache_file = frequency = None
 
@@ -26,14 +27,13 @@ async def fetch_sub_json(session):
 def save_cache(posts):
     with open(cache_file, 'w') as f:
         for post in posts:
-            f.write(post + ' ')
+            f.write(post['data']['id'] + ' ')
 
 
 def get_cache():
     with open(cache_file, 'r') as f:
-        post_ids_list = f.read().split()
-        post_ids_set = set(post_ids_list)
-        return post_ids_set
+        post_ids = f.read().split()
+        return post_ids
 
 
 async def make_notif(session, post_json):
@@ -44,15 +44,20 @@ async def make_notif(session, post_json):
 
 async def refresh(session):
     while True:
+        now = datetime.utcnow()
         cache = get_cache()
         response = await fetch_sub_json(session)
         posts = response['data']['children']
         posts.reverse()
         for post in posts:
             if post['data']['id'] not in cache:
-                await make_notif(session, post)
-                cache.add(post['data']['id'])
-        save_cache(cache)
+                created_utc = datetime.utcfromtimestamp(int(post['data']['created_utc']))
+                seconds_diff = (now - created_utc).total_seconds()
+                if seconds_diff > 300:
+                    pass
+                else:
+                    await make_notif(session, post)
+        save_cache(posts)
         await asyncio.sleep(frequency)
 
 
